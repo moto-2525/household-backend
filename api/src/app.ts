@@ -15,6 +15,7 @@ app.use(cors());
 
 // morgan のログを winston を経由して出力する
 // combined フォーマットで出力し、ログレベルは info に設定
+// "combined" は Apache風の詳細フォーマット（メソッド・URL・ステータスなど）
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 
 // /transactions の担当者としてルーターを登録

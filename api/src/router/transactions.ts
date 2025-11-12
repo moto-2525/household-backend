@@ -1,3 +1,4 @@
+import { error } from "console";
 import { Router } from "express";
 const router = Router();
 
@@ -45,39 +46,46 @@ router.get('/:id', (req, res) => {  //URL パラメータ :id を受け取れて
 
 // POST /transactions
 router.post("/", (req, res) => {
-  const { date, type, amount, memo } = req.body;
+  try {
+    const { date, type, amount, memo } = req.body;
 
-  // ① date 必須 & フォーマットチェック「先頭から末尾まで、4桁数字 → - → 2桁数字 → - → 2桁数字 の形に完全一致する」
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!date || !dateRegex.test(date)) {
-    return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+    // ① date 必須 & フォーマットチェック「先頭から末尾まで、4桁数字 → - → 2桁数字 → - → 2桁数字 の形に完全一致する」
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!date || !dateRegex.test(date)) {
+      return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+    }
+
+    // ② type 必須 & 値のチェック
+    if (!type || (type !== "収入" && type !== "支出")) {
+      return res.status(400).json({ error: 'type must be "収入" or "支出"' });
+    }
+
+    // ③ amount 必須 & 数値チェック
+    if (amount === undefined || typeof amount !== "number") {
+      return res.status(400).json({ error: "amount must be a number" });
+    }
+
+    // ④ memo 任意だが、存在するなら string に制限
+    if (memo !== undefined && typeof memo !== "string") {
+      return res.status(400).json({ error: "memo must be a string" });
+    }
+
+    // ⑤ 全部OKなら、登録成功レスポンスを返す
+    const newTransaction = {
+      id: Date.now(),        // ← 修正ポイント！！
+      date,
+      type,
+      amount,
+      memo: memo || ""
+    };
+
+    return res.status(201).json(newTransaction);
+  } catch (err: unknown) {
+    console.error("Unexpected error:", err);
+    return res.status(500).json({
+      error: "Internal Server Error（サーバー内部でエラーが発生しました）",
+    });
   }
-
-  // ② type 必須 & 値のチェック
-  if (!type || (type !== "収入" && type !== "支出")) {
-    return res.status(400).json({ error: 'type must be "収入" or "支出"' });
-  }
-
-  // ③ amount 必須 & 数値チェック
-  if (amount === undefined || typeof amount !== "number") {
-    return res.status(400).json({ error: "amount must be a number" });
-  }
-
-  // ④ memo 任意だが、存在するなら string に制限
-  if (memo !== undefined && typeof memo !== "string") {
-    return res.status(400).json({ error: "memo must be a string" });
-  }
-
-  // ⑤ 全部OKなら、登録成功レスポンスを返す
-  const newTransaction = {
-    id: Date.now(),        // ← 修正ポイント！！
-    date,
-    type,
-    amount,
-    memo: memo || ""
-  };
-
-  return res.status(201).json(newTransaction);
 });
 
 export default router;
