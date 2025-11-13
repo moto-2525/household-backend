@@ -2,89 +2,107 @@ import { error } from "console";
 import { Router } from "express";
 const router = Router();
 
-/// GET /transactions
-router.get("/", (req, res) => {
-  // 設計書どおりのダミーデータ
-  const transactions = [
-    {
-      id: "1",
-      date: "2025-11-01",
-      type: "収入",
-      amount: 50000,
-      memo: "給与",
-    },
-    {
-      id: "2",
-      date: "2025-11-02",
-      type: "支出",
-      amount: 1200,
-      memo: "ランチ",
-    },
-  ];
+import { prisma } from "../context/prisma";
 
-  return res.status(200).json(transactions);
-});;
+/// GET /transactions
+router.get("/", async (req, res) => {
+  try {
+    const transactions = await prisma.transaction.findMany({
+      orderBy: { id: "asc" }
+    });
+
+    return res.status(200).json(transactions);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 // GET /transactions/:id
-router.get('/:id', (req, res) => {  //URL パラメータ :id を受け取れている
-  const { id } = req.params;
+router.get("/:id", async (req, res) => {
+  const id = Number(req.params.id);
 
-  // ダミーデータをそのまま流用
-  const transactions = [
-    { id: "1", date: "2025-11-01", type: "収入", amount: 50000, memo: "給与" },
-    { id: "2", date: "2025-11-02", type: "支出", amount: 1200, memo: "ランチ" }
-  ];
+  const transaction = await prisma.transaction.findUnique({
+    where: { id }
+  });
 
-  const target = transactions.find(t => t.id === id);  //ダミーデータの中から find で検索できている
-
-  if (!target) {
-    return res.status(404).json({ error: "transaction not found" });  //見つからなければ 404
+  if (!transaction) {
+    return res.status(404).json({ error: "transaction not found" });
   }
 
-  return res.status(200).json(target);  //見つかれば 200 & データ返却
+  return res.json(transaction);
 });
 
 // POST /transactions
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { date, type, amount, memo } = req.body;
 
-    // ① date 必須 & フォーマットチェック「先頭から末尾まで、4桁数字 → - → 2桁数字 → - → 2桁数字 の形に完全一致する」
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!date || !dateRegex.test(date)) {
-      return res.status(400).json({ error: "date must be YYYY-MM-DD" });
-    }
-
-    // ② type 必須 & 値のチェック
-    if (!type || (type !== "収入" && type !== "支出")) {
-      return res.status(400).json({ error: 'type must be "収入" or "支出"' });
-    }
-
-    // ③ amount 必須 & 数値チェック
-    if (amount === undefined || typeof amount !== "number") {
+    if (typeof amount !== "number") {
       return res.status(400).json({ error: "amount must be a number" });
     }
 
-    // ④ memo 任意だが、存在するなら string に制限
-    if (memo !== undefined && typeof memo !== "string") {
-      return res.status(400).json({ error: "memo must be a string" });
-    }
-
-    // ⑤ 全部OKなら、登録成功レスポンスを返す
-    const newTransaction = {
-      id: Date.now(),        // ← 修正ポイント！！
-      date,
-      type,
-      amount,
-      memo: memo || ""
-    };
+    // バリデーション（今のままでOK）
+    const newTransaction = await prisma.transaction.create({
+      data: {
+        date,
+        type,
+        amount,
+        memo: memo || ""
+      }
+    });
 
     return res.status(201).json(newTransaction);
-  } catch (err: unknown) {
-    console.error("Unexpected error:", err);
-    return res.status(500).json({
-      error: "Internal Server Error（サーバー内部でエラーが発生しました）",
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// PUT /transactions/:id
+router.put("/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { date, type, amount, memo } = req.body;
+
+    if (typeof amount !== "number") {
+      return res.status(400).json({ error: "amount must be a number" });
+    }
+
+    // ① 更新対象が存在するかチェック
+    const exists = await prisma.transaction.findUnique({ where: { id } });
+    if (!exists) {
+      return res.status(404).json({ error: "transaction not found" });
+    }
+
+    const updated = await prisma.transaction.update({
+      where: { id },
+      data: { date, type, amount, memo },
     });
+
+    return res.json(updated);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// DELETE /transactions/:id
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const exists = await prisma.transaction.findUnique({ where: { id } });
+    if (!exists) {
+      return res.status(404).json({ error: "transaction not found" });
+    }
+
+    await prisma.transaction.delete({ where: { id } });
+
+    return res.status(204).send();
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
