@@ -1,86 +1,87 @@
-console.log("🚀 transactions Router が読み込まれたよ！");
-import { error } from "console";
-import { Router } from "express";
+console.log('🚀 transactions Router が読み込まれたよ！'); //CRUD ルーター
+import { Router } from 'express';
 const router = Router();
 
-import { prisma } from "../context/prisma";
+import { prisma } from '../context/prisma'; // src/context/prisma.ts を作ったのでPrismaClient を使えるようにする。ダミーデータ削除して、Prisma 版の CRUD に置き換える
 
 /// GET /transactions
-router.get("/", async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const transactions = await prisma.transaction.findMany({
-      orderBy: { id: "asc" }
+      //Prisma.Express の API の中で データを取りに行ったり保存したりする係
+      orderBy: { id: 'asc' },
     });
 
     return res.status(200).json(transactions);
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-// GET /transactions/:id
-router.get("/:id", async (req, res) => {
-  const id = Number(req.params.id);
-
+// GET /transactions/:id  ⚪︎ルート定義。/transactions/3 みたいに１つのIDデータだけ習得したいときに動くAPI
+router.get('/:id', async (req, res) => {
+  //transactions/◯◯ のように数字が入るパス（パラメータ付き）を受け取るルート。:id は 動的なパスのこと（3でも4でもOK）
+  const id = Number(req.params.id); //リクエストからidを取り出す。req.params.id は URL の :id 部分。文字列で来るので Number() で数値に変換
+  //URL : /transactions/7 → req.params.id は "7"→ id は 7（数値）
   const transaction = await prisma.transaction.findUnique({
-    where: { id }
+    //Prisma でデータベースから探す。findUnique() は id が一致する1件だけ を検索する関数
+    where: { id },
   });
 
   if (!transaction) {
-    return res.status(404).json({ error: "transaction not found" });
+    return res.status(404).json({ error: 'transaction not found' }); //もし見つからなかったら 404。例えば /transactions/99999 みたいに存在しない id なら→ null が返る→ "見つかりません" を 404 で返す
   }
 
-  return res.json(transaction);
+  return res.json(transaction); // 見つかったら JSON を返す。Next.js などのフロント側はこれを受け取って画面に表示する
 });
 
-// POST /transactions
-router.post("/", async (req, res) => {
-  console.log("📩 受け取ったデータ raw:", req.body);
-  try {
-    console.log("📩 バリデーション前:", req.body);
+//POST /transactions
+router.post('/', async (req, res) => {
+  // 🔥 ここに追加！
+  console.log('🔥🔥 POST /transactions に到達！ req.body:', req.body);
 
+  try {
     const { date, type, amount, memo } = req.body;
 
     const amountNumber = Number(amount);
-    console.log("📌 数値変換後:", amountNumber);
-
     if (isNaN(amountNumber)) {
-      return res.status(400).json({ error: "amount must be a number" });
+      return res.status(400).json({ error: 'amount must be a number' });
     }
 
-    // --- DB 登録 ---
+    // ← ← ここで date を補正
+    const fixedDate = new Date(`${date}T00:00:00`);
+
     const newTransaction = await prisma.transaction.create({
       data: {
-        date: new Date(date),   // 必須：Prisma の DateTime は Date 型
+        date: fixedDate,
         type,
         amount: amountNumber,
-        memo: memo || ""
-      }
+        memo: memo || '',
+      },
     });
 
     return res.json(newTransaction);
-
   } catch (error) {
-    console.error("POST /transactions error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('POST /transactions FULL ERROR:', error);
+    return res.status(500).json({ error: String(error) });
   }
 });
 
 // PUT /transactions/:id
-router.put("/:id", async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
     const { date, type, amount, memo } = req.body;
 
-    if (typeof amount !== "number") {
-      return res.status(400).json({ error: "amount must be a number" });
+    if (typeof amount !== 'number') {
+      return res.status(400).json({ error: 'amount must be a number' });
     }
 
     // ① 更新対象が存在するかチェック
     const exists = await prisma.transaction.findUnique({ where: { id } });
     if (!exists) {
-      return res.status(404).json({ error: "transaction not found" });
+      return res.status(404).json({ error: 'transaction not found' });
     }
 
     const updated = await prisma.transaction.update({
@@ -91,18 +92,18 @@ router.put("/:id", async (req, res) => {
     return res.json(updated);
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
 // DELETE /transactions/:id
-router.delete("/:id", async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
 
     const exists = await prisma.transaction.findUnique({ where: { id } });
     if (!exists) {
-      return res.status(404).json({ error: "transaction not found" });
+      return res.status(404).json({ error: 'transaction not found' });
     }
 
     await prisma.transaction.delete({ where: { id } });
@@ -110,7 +111,7 @@ router.delete("/:id", async (req, res) => {
     return res.status(204).send();
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
