@@ -5,9 +5,9 @@ import { prisma } from '../context/prisma'; // DB にテストデータを入れ
 
 describe('GET /summary', () => {
   beforeEach(async () => {
-    // テスト前に DB を完全クリア
+    // テスト前に DB を完全クリア。deleteMany() → そのテスト用に余分なデータを消す
     await prisma.transaction.deleteMany();
-    // 毎回同じ状態からスタートできるようにするためテストが始まる度に DB に4件のデータを入れている。
+    // 毎回同じ状態からスタートできるようにするためテストが始まる度に DB に4件のデータを入れている。createMany() → テストが想定するデータを再現する（収入2件、支出2件など）
     await prisma.transaction.createMany({
       data: [
         { date: new Date(), type: 'income', amount: 10000, memo: '給料' },
@@ -41,3 +41,5 @@ describe('GET /summary', () => {
     expect(res.body.balance).toBe(0);
   });
 });
+
+// 収入の合計 (income),支出の合計 (expense),残高 (balance = income - expense)を正しく返すか確認するテスト

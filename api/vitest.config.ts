@@ -4,8 +4,8 @@ import dotenv from 'dotenv';
 export default defineConfig({
   test: {
     setupFiles: ['./vitest.setup.ts'],
+    pool: 'threads',
   },
 });
 
-// テスト環境の .env.test を読み込む
 dotenv.config({ path: '.env.test' });
