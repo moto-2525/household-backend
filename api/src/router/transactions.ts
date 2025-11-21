@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
   try {
     const transactions = await prisma.transaction.findMany({
       //Prisma.Express の API の中で データを取りに行ったり保存したりする係
-      orderBy: { id: 'asc' },
+      orderBy: { date: 'desc' },
     });
 
     return res.status(200).json(transactions);
@@ -54,7 +54,7 @@ router.post('/', async (req, res) => {
     //  Prisma にそのまま渡す
     const newTransaction = await prisma.transaction.create({
       data: {
-        date, // ← そのまま！
+        date: new Date(date), // ← ★これが必要！！！
         type,
         amount: amountNumber,
         memo: memo || '',
