@@ -86,7 +86,12 @@ router.put('/:id', async (req, res) => {
 
     const updated = await prisma.transaction.update({
       where: { id },
-      data: { date, type, amount, memo },
+      data: {
+        date: new Date(date),
+        type,
+        amount,
+        memo,
+      },
     });
 
     return res.json(updated);
