@@ -1,30 +1,43 @@
-# 家計簿アプリ設計書
+# 家計簿アプリ（household-backend）
 
-## 一覧画面
-![一覧画面](./images/image1.png)
+## 概要
 
-## 詳細画面
-![詳細画面](./images/image2.png)
+家計簿アプリのバックエンド API です。  
+入出金データ（収入・支出）の管理および、収支の集計情報を提供します。
 
-# 概要
+フロントエンド（Next.js）からのリクエストを受け取り、  
+データベースと連携して CRUD 処理・集計処理を行います。
 
-家計簿アプリです。入出金一覧を取得します。該当の入出金記録から詳細画面に遷移します。新規登録が行えます。集計表にて収支差額が確認できます。
+---
 
-## **必要なAPI**
+## 使用技術
 
-## **支出 / 収入（Transaction）**
+- Node.js
+- Express
+- TypeScript
+- Prisma
+- MySQL
+- Docker（開発環境）
 
-### **機能**
+---
 
-- 一覧取得
-- 詳細画面遷移
-- 新規追加
+## 提供 API 一覧
 
-| **目的** | **メソッド** | **URL** |
-| --- | --- | --- |
-| 一覧取得 | GET | /transactions |
-| 詳細取得 | GET | /transactions/:id |
-| 新規追加 | POST | /transactions |
+#### 入出金（Transaction）
+
+| 目的     | メソッド | URL               |
+| -------- | -------- | ----------------- |
+| 一覧取得 | GET      | /transactions     |
+| 新規追加 | POST     | /transactions     |
+| 削除     | DELETE   | /transactions/:id |
+
+### 集計（Summary）
+
+| 目的         | メソッド | URL      |
+| ------------ | -------- | -------- |
+| 収支集計取得 | GET      | /summary |
+
+---
 
 ### **1. GET /transactions**
 
@@ -60,48 +73,16 @@
 
 [
 {
-"id": string,      // 自動生成されたID
-"date": string,    // YYYY-MM-DD
-"type": string,    // "収入" または "支出"
-"amount": number,  // 整数
-"memo": string     // 任意
+"id": string, // 自動生成されたID
+"date": string, // YYYY-MM-DD
+"type": string, // "収入" または "支出"
+"amount": number, // 整数
+"memo": string // 任意
 },
 ...
 ]
 
- **2. GET /transactions/:id**
-
-**目的**：指定したIDの詳細を取得する
-
-**ステータスコード：**
-
-- **200 OK**：詳細取得に成功
-- **404 Not Found**：指定したIDのデータが存在しない
-- **500 Internal Server Error**：サーバーエラー
-
-**リクエスト**：URL パラメータ id
-
-**レスポンス（例）**：
-
-{
-"id": "2",
-"date": "2025-11-02",
-"type": "支出",
-"amount": 1200,
-"memo": "ランチ"
-}
-
-レスポンスデータ形式：
-
-{
-"id": string,
-"date": string,
-"type": string,
-"amount": number,
-"memo": string
-}
-
-### **3. POST /transactions**
+### **2. POST /transactions**
 
 **目的**：新しい入出金データを登録する
 
@@ -163,7 +144,17 @@ Content-Type: application/json
 "error": "server error"
 }
 
-# **集計表（Summary）**
+### **3. DELETE /transactions/:id**
+
+**目的**：指定した入出金データを削除する
+
+**ステータスコード**
+
+- **200 OK：削除成功**
+- **404 Not Found：対象データが存在しない**
+- **500 Internal Server Error**：サーバーエラー
+
+## **集計表（Summary）**
 
 ### **● 機能**
 
@@ -171,9 +162,9 @@ Content-Type: application/json
 - 支出合計
 - 収支差額
 
-| 目的 | **メソッド** | **URL** |
-| --- | --- | --- |
-| 収支差額取得 | GET | /summary |
+| 目的         | **メソッド** | **URL**  |
+| ------------ | ------------ | -------- |
+| 収支差額取得 | GET          | /summary |
 
 ### **4. GET /summary**
 
@@ -195,9 +186,9 @@ Content-Type: application/json
 **レスポンスデータ形式：**
 
 {
-"income": number,   // 収入の合計
-"expense": number,  // 支出の合計
-"balance": number   // 収支差額
+"income": number, // 収入の合計
+"expense": number, // 支出の合計
+"balance": number // 収支差額
 }
 
 **計算ルール**
