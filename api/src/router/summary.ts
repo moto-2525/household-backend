@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { prisma } from '../context/prisma'; // ← これが必要！
-import { app } from '../app';
 
 const router = Router();
 
